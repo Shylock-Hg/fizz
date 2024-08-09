@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <fizz/crypto/Hasher.h>
 #include <folly/Range.h>
 #include <folly/io/IOBuf.h>
 #include <folly/ssl/OpenSSLHash.h>
@@ -24,27 +25,26 @@ namespace openssl {
  *   - BlankHash: ByteRange containing the digest of a hash of empty input
  */
 template <typename T>
-class Sha {
+class Sha : public fizz::Hasher {
  public:
-  void hash_init();
+  void hash_init() override;
 
-  void hash_update(folly::ByteRange data);
+  using fizz::Hasher::hash_update;
+  void hash_update(folly::ByteRange data) override;
 
-  void hash_update(const folly::IOBuf& data);
+  void hash_final(folly::MutableByteRange out) override;
 
-  void hash_final(folly::MutableByteRange out);
+  std::unique_ptr<fizz::Hasher> clone() const override;
 
-  /**
-   * Puts HMAC(key, in) into out. Out must be at least of size HashLen.
-   */
+  size_t getHashLen() const override;
+
+  inline size_t getBlockSize() const override;
+
   static void hmac(
       folly::ByteRange key,
       const folly::IOBuf& in,
       folly::MutableByteRange out);
 
-  /**
-   * Puts Hash(in) into out. Out must be at least of size HashLen.
-   */
   static void hash(const folly::IOBuf& in, folly::MutableByteRange out);
 
  private:

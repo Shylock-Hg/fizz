@@ -183,6 +183,8 @@ set(FIZZ_SOURCES
   crypto/aead/IOBufUtil.cpp
   crypto/aead/AEGISCipher.cpp
   backend/openssl/crypto/signature/Signature.cpp
+  crypto/Hasher.cpp
+  crypto/Hmac.cpp
   crypto/Hkdf.cpp
   crypto/KeyDerivation.cpp
   crypto/Crypto.cpp
@@ -212,13 +214,13 @@ set(FIZZ_SOURCES
   protocol/AsyncFizzBase.cpp
   protocol/Types.cpp
   protocol/Exporter.cpp
-  protocol/MultiBackendFactory.cpp
   protocol/DefaultCertificateVerifier.cpp
   protocol/Events.cpp
   protocol/KeyScheduler.cpp
   protocol/Certificate.cpp
+  protocol/Factory.cpp
+  protocol/MultiBackendFactory.cpp
   backend/openssl/certificate/CertUtils.cpp
-  backend/openssl/OpenSSLFactory.cpp
   protocol/Params.cpp
   protocol/clock/SystemClock.cpp
   protocol/ech/Decrypter.cpp
@@ -367,26 +369,11 @@ add_library(fizz_test_support
   crypto/aead/test/TestUtil.cpp
   crypto/test/TestUtil.cpp
   protocol/ech/test/TestUtil.cpp
-  ${FIZZ_TEST_HEADERS}
 )
 
 target_link_libraries(fizz_test_support
   PUBLIC
     fizz
-    ${LIBGMOCK_LIBRARIES}
-    ${GLOG_LIBRARY}
-)
-
-target_compile_definitions(fizz_test_support
-  PUBLIC
-    ${LIBGMOCK_DEFINES}
-)
-
-target_include_directories(fizz_test_support
-  SYSTEM
-  PUBLIC
-    ${LIBGMOCK_INCLUDE_DIR}
-    ${LIBGTEST_INCLUDE_DIRS}
 )
 
 # export fizz headers and targets for unit tests utils

@@ -27,8 +27,8 @@ namespace fizz {
 
 std::unique_ptr<KeyExchange> MultiBackendFactory::makeKeyExchange(
     NamedGroup group,
-    KeyExchangeMode mode) const {
-  (void)mode;
+    KeyExchangeRole role) const {
+  (void)role;
   switch (group) {
     case NamedGroup::secp256r1:
       return fizz::openssl::makeKeyExchange<fizz::P256>();
@@ -43,26 +43,26 @@ std::unique_ptr<KeyExchange> MultiBackendFactory::makeKeyExchange(
     case NamedGroup::x25519_kyber512_experimental:
       return std::make_unique<HybridKeyExchange>(
           std::make_unique<X25519KeyExchange>(),
-          OQSKeyExchange::createOQSKeyExchange(mode, OQS_KEM_alg_kyber_512));
+          OQSKeyExchange::createOQSKeyExchange(role, OQS_KEM_alg_kyber_512));
     case NamedGroup::secp256r1_kyber512:
       return std::make_unique<HybridKeyExchange>(
           fizz::openssl::makeKeyExchange<fizz::P256>(),
-          OQSKeyExchange::createOQSKeyExchange(mode, OQS_KEM_alg_kyber_512));
+          OQSKeyExchange::createOQSKeyExchange(role, OQS_KEM_alg_kyber_512));
     case NamedGroup::kyber512:
-      return OQSKeyExchange::createOQSKeyExchange(mode, OQS_KEM_alg_kyber_512);
+      return OQSKeyExchange::createOQSKeyExchange(role, OQS_KEM_alg_kyber_512);
     case NamedGroup::x25519_kyber768_draft00:
     case NamedGroup::x25519_kyber768_experimental:
       return std::make_unique<HybridKeyExchange>(
           std::make_unique<X25519KeyExchange>(),
-          OQSKeyExchange::createOQSKeyExchange(mode, OQS_KEM_alg_kyber_768));
+          OQSKeyExchange::createOQSKeyExchange(role, OQS_KEM_alg_kyber_768));
     case NamedGroup::secp256r1_kyber768_draft00:
       return std::make_unique<HybridKeyExchange>(
           fizz::openssl::makeKeyExchange<fizz::P256>(),
-          OQSKeyExchange::createOQSKeyExchange(mode, OQS_KEM_alg_kyber_768));
+          OQSKeyExchange::createOQSKeyExchange(role, OQS_KEM_alg_kyber_768));
     case NamedGroup::secp384r1_kyber768:
       return std::make_unique<HybridKeyExchange>(
           fizz::openssl::makeKeyExchange<fizz::P384>(),
-          OQSKeyExchange::createOQSKeyExchange(mode, OQS_KEM_alg_kyber_768));
+          OQSKeyExchange::createOQSKeyExchange(role, OQS_KEM_alg_kyber_768));
 #endif
     default:
       throw std::runtime_error("ke: not implemented");
@@ -92,10 +92,8 @@ std::unique_ptr<Aead> MultiBackendFactory::makeAead(CipherSuite cipher) const {
 
 namespace detail {
 template <typename Hash>
-inline std::unique_ptr<KeyDerivation> makeKeyDerivationPtr(
-    const std::string& labelPrefix) {
+inline std::unique_ptr<KeyDerivation> makeKeyDerivationPtr() {
   return std::unique_ptr<KeyDerivationImpl>(new KeyDerivationImpl(
-      labelPrefix,
       Hash::HashLen,
       &openssl::Hasher<Hash>::hash,
       &openssl::Hasher<Hash>::hmac,
@@ -111,11 +109,11 @@ std::unique_ptr<KeyDerivation> MultiBackendFactory::makeKeyDeriver(
     case CipherSuite::TLS_AES_128_GCM_SHA256:
     case CipherSuite::TLS_AES_128_OCB_SHA256_EXPERIMENTAL:
     case CipherSuite::TLS_AEGIS_128L_SHA256:
-      return detail::makeKeyDerivationPtr<Sha256>(getHkdfPrefix());
+      return detail::makeKeyDerivationPtr<Sha256>();
     case CipherSuite::TLS_AES_256_GCM_SHA384:
-      return detail::makeKeyDerivationPtr<Sha384>(getHkdfPrefix());
+      return detail::makeKeyDerivationPtr<Sha384>();
     case CipherSuite::TLS_AEGIS_256_SHA512:
-      return detail::makeKeyDerivationPtr<Sha512>(getHkdfPrefix());
+      return detail::makeKeyDerivationPtr<Sha512>();
     default:
       throw std::runtime_error("ks: not implemented");
   }
@@ -128,12 +126,10 @@ std::unique_ptr<HandshakeContext> MultiBackendFactory::makeHandshakeContext(
     case CipherSuite::TLS_AES_128_GCM_SHA256:
     case CipherSuite::TLS_AES_128_OCB_SHA256_EXPERIMENTAL:
     case CipherSuite::TLS_AEGIS_128L_SHA256:
-      return std::make_unique<HandshakeContextImpl<fizz::Sha256>>(
-          getHkdfPrefix());
+      return std::make_unique<HandshakeContextImpl<fizz::Sha256>>();
     case CipherSuite::TLS_AES_256_GCM_SHA384:
     case CipherSuite::TLS_AEGIS_256_SHA512:
-      return std::make_unique<HandshakeContextImpl<fizz::Sha384>>(
-          getHkdfPrefix());
+      return std::make_unique<HandshakeContextImpl<fizz::Sha384>>();
     default:
       throw std::runtime_error("hs: not implemented");
   }

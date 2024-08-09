@@ -19,16 +19,20 @@
 #include <fizz/backend/openssl/crypto/aead/OpenSSLEVPCipher.h>
 #include <fizz/backend/openssl/crypto/exchange/OpenSSLKeyExchange.h>
 #include <fizz/crypto/exchange/X25519.h>
-#include <fizz/protocol/DefaultFactory.h>
+#include <fizz/protocol/Factory.h>
 
 namespace fizz {
 class PeerCert;
 
-class MultiBackendFactory : public DefaultFactory {
+/**
+ * A fizz::Factory implementation composed of primitives from
+ * multiple backends.
+ */
+class MultiBackendFactory : public Factory {
  public:
   [[nodiscard]] std::unique_ptr<KeyExchange> makeKeyExchange(
       NamedGroup group,
-      KeyExchangeMode mode) const override;
+      KeyExchangeRole role) const override;
 
   [[nodiscard]] std::unique_ptr<Aead> makeAead(
       CipherSuite cipher) const override;

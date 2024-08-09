@@ -21,7 +21,7 @@ cpp_unittest(
         "DefaultCertificateVerifierTest.cpp",
     ],
     deps = [
-        ":utilities",
+        ":cert_util",
         "//fizz/protocol:default_certificate_verifier",
         "//folly/portability:gtest",
         "//folly/ssl:openssl_cert_utils",
@@ -75,7 +75,7 @@ cpp_unittest(
         "ExporterTest.cpp",
     ],
     deps = [
-        "//fizz/backend:openssl",
+        "//fizz/protocol:default_factory",
         "//fizz/protocol:exporter",
         "//folly/portability:gtest",
     ],
@@ -87,13 +87,13 @@ cpp_library(
         "Mocks.h",
     ],
     exported_deps = [
-        "//fizz/backend:openssl",
         "//fizz/crypto/aead/test:mocks",
         "//fizz/crypto/exchange/test:mocks",
         "//fizz/crypto/test:mocks",
         "//fizz/protocol:async_fizz_base",
         "//fizz/protocol:certificate",
         "//fizz/protocol:certificate_verifier",
+        "//fizz/protocol:default_factory",
         "//fizz/protocol:handshake_context",
         "//fizz/protocol:key_scheduler",
         "//fizz/protocol:types",
@@ -104,9 +104,9 @@ cpp_library(
 )
 
 cpp_library(
-    name = "utilities",
+    name = "cert_util",
     headers = [
-        "Utilities.h",
+        "CertUtil.h",
     ],
     exported_deps = [
         "//fizz/backend:openssl",
@@ -126,13 +126,13 @@ cpp_library(
 )
 
 cpp_unittest(
-    name = "openssl_factory_test",
+    name = "multi_backend_factory_test",
     srcs = [
-        "OpenSSLFactoryTest.cpp",
+        "MultiBackendFactoryTest.cpp",
     ],
     supports_static_listing = False,
     deps = [
-        "//fizz/backend:openssl",
+        "//fizz/protocol:multi_backend_factory",
         "//fizz/test:handshake_test_lib",
     ],
 )
@@ -153,12 +153,11 @@ cpp_library(
 )
 
 cpp_library(
-    name = "test_messages",
+    name = "test_util",
     headers = [
-        "TestMessages.h",
+        "TestUtil.h",
     ],
     exported_deps = [
-        ":protocol_test",
         "//fizz/protocol:params",
         "//fizz/record:record",
     ],

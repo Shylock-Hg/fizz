@@ -64,8 +64,8 @@ class BatchSignatureFactory : public Factory {
 
   std::unique_ptr<KeyExchange> makeKeyExchange(
       NamedGroup group,
-      KeyExchangeMode mode) const override {
-    return original_->makeKeyExchange(group, mode);
+      KeyExchangeRole role) const override {
+    return original_->makeKeyExchange(group, role);
   }
 
   std::unique_ptr<Aead> makeAead(CipherSuite cipher) const override {
@@ -101,10 +101,6 @@ class BatchSignatureFactory : public Factory {
 
   std::shared_ptr<Cert> makeIdentityOnlyCert(std::string ident) const override {
     return original_->makeIdentityOnlyCert(std::move(ident));
-  }
-
-  std::string getHkdfPrefix() const override {
-    return original_->getHkdfPrefix();
   }
 
  private:

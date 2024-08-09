@@ -1,3 +1,9 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 """ build mode definitions for fizz """
 
 load("@fbcode//:BUILD_MODE.bzl", get_parent_modes = "get_empty_modes")

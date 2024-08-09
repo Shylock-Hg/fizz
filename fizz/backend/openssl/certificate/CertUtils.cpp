@@ -46,20 +46,30 @@ Buf CertUtils::prepareSignData(
   static constexpr folly::StringPiece kClientLabel =
       "TLS 1.3, client CertificateVerify";
   static constexpr folly::StringPiece kAuthLabel = "Exported Authenticator";
-  static constexpr folly::StringPiece kDelegatedCredLabel =
+  static constexpr folly::StringPiece kServerDelegatedCredLabel =
       "TLS, server delegated credentials";
+  static constexpr folly::StringPiece kClientDelegatedCredLabel =
+      "TLS, client delegated credentials";
   static constexpr size_t kSigPrefixLen = 64;
   static constexpr uint8_t kSigPrefix = 32;
 
   folly::StringPiece label;
-  if (context == CertificateVerifyContext::Server) {
-    label = kServerLabel;
-  } else if (context == CertificateVerifyContext::Client) {
-    label = kClientLabel;
-  } else if (context == CertificateVerifyContext::Authenticator) {
-    label = kAuthLabel;
-  } else {
-    label = kDelegatedCredLabel;
+  switch (context) {
+    case CertificateVerifyContext::Server:
+      label = kServerLabel;
+      break;
+    case CertificateVerifyContext::Client:
+      label = kClientLabel;
+      break;
+    case CertificateVerifyContext::Authenticator:
+      label = kAuthLabel;
+      break;
+    case CertificateVerifyContext::ClientDelegatedCredential:
+      label = kClientDelegatedCredLabel;
+      break;
+    case CertificateVerifyContext::ServerDelegatedCredential:
+      label = kServerDelegatedCredLabel;
+      break;
   }
 
   size_t sigDataLen = kSigPrefixLen + label.size() + 1 + toBeSigned.size();
@@ -146,13 +156,10 @@ std::unique_ptr<PeerCert> CertUtils::makePeerCert(
       default:
         break;
     }
-  }
-#if FIZZ_OPENSSL_HAS_ED25519
-  else if (pkeyID == EVP_PKEY_ED25519) {
+  } else if (pkeyID == EVP_PKEY_ED25519) {
     return std::make_unique<OpenSSLPeerCertImpl<KeyType::ED25519>>(
         std::move(cert));
   }
-#endif
   throw std::runtime_error("unknown peer cert type");
 }
 
@@ -231,12 +238,9 @@ KeyType CertUtils::getKeyType(const folly::ssl::EvpPkeyUniquePtr& key) {
       case NID_secp521r1:
         return KeyType::P521;
     }
-  }
-#if FIZZ_OPENSSL_HAS_ED25519
-  else if (pkeyID == EVP_PKEY_ED25519) {
+  } else if (pkeyID == EVP_PKEY_ED25519) {
     return KeyType::ED25519;
   }
-#endif
 
   throw std::runtime_error("unknown key type");
 }

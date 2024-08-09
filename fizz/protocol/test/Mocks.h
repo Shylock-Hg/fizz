@@ -8,13 +8,13 @@
 
 #pragma once
 
-#include <fizz/backend/openssl/OpenSSLFactory.h>
 #include <fizz/crypto/aead/test/Mocks.h>
 #include <fizz/crypto/exchange/test/Mocks.h>
 #include <fizz/crypto/test/Mocks.h>
 #include <fizz/protocol/AsyncFizzBase.h>
 #include <fizz/protocol/Certificate.h>
 #include <fizz/protocol/CertificateVerifier.h>
+#include <fizz/protocol/DefaultFactory.h>
 #include <fizz/protocol/HandshakeContext.h>
 #include <fizz/protocol/KeyScheduler.h>
 #include <fizz/protocol/Types.h>
@@ -215,7 +215,7 @@ class MockCertificateVerifier : public CertificateVerifier {
       (const));
 };
 
-class MockFactory : public openssl::OpenSSLFactory {
+class MockFactory : public ::fizz::DefaultFactory {
  public:
   MOCK_METHOD(
       std::unique_ptr<PlaintextReadRecordLayer>,
@@ -250,7 +250,7 @@ class MockFactory : public openssl::OpenSSLFactory {
   MOCK_METHOD(
       std::unique_ptr<KeyExchange>,
       makeKeyExchange,
-      (NamedGroup group, Factory::KeyExchangeMode mode),
+      (NamedGroup group, KeyExchangeRole role),
       (const));
   MOCK_METHOD(std::unique_ptr<Aead>, makeAead, (CipherSuite cipher), (const));
   MOCK_METHOD(Random, makeRandom, (), (const));
@@ -338,12 +338,12 @@ class MockFactory : public openssl::OpenSSLFactory {
   }
 };
 
-class MockAsyncKexFactory : public openssl::OpenSSLFactory {
+class MockAsyncKexFactory : public ::fizz::DefaultFactory {
  public:
   MOCK_METHOD(
       std::unique_ptr<KeyExchange>,
       makeKeyExchange,
-      (NamedGroup group, Factory::KeyExchangeMode mode),
+      (NamedGroup group, KeyExchangeRole role),
       (const));
 };
 

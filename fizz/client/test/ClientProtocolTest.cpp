@@ -21,7 +21,7 @@
 #include <fizz/protocol/ech/test/TestUtil.h>
 #include <fizz/protocol/test/Matchers.h>
 #include <fizz/protocol/test/ProtocolTest.h>
-#include <fizz/protocol/test/TestMessages.h>
+#include <fizz/protocol/test/TestUtil.h>
 #include <fizz/record/test/Mocks.h>
 
 using namespace fizz::test;
@@ -41,6 +41,10 @@ class ClientProtocolTest : public ProtocolTest<ClientTypes, Actions> {
     context_->setSupportedSigSchemes(
         {SignatureScheme::ecdsa_secp256r1_sha256,
          SignatureScheme::rsa_pss_sha256});
+    context_->setECHOuterExtensionTypes(
+        {ExtensionType::supported_groups,
+         ExtensionType::supported_versions,
+         ExtensionType::key_share});
     auto mockFactory = std::make_unique<MockFactory>();
     mockFactory->setDefaults();
     factory_ = mockFactory.get();
@@ -349,8 +353,7 @@ TEST_F(ClientProtocolTest, TestConnectFlow) {
   }));
   MockKeyExchange* mockKex;
   EXPECT_CALL(
-      *factory_,
-      makeKeyExchange(NamedGroup::x25519, Factory::KeyExchangeMode::Client))
+      *factory_, makeKeyExchange(NamedGroup::x25519, KeyExchangeRole::Client))
       .WillOnce(InvokeWithoutArgs([&mockKex]() {
         auto ret = std::make_unique<MockKeyExchange>();
         EXPECT_CALL(*ret, generateKeyPair());
@@ -420,8 +423,7 @@ TEST_F(ClientProtocolTest, TestConnectPskFlow) {
   }));
   MockKeyExchange* mockKex;
   EXPECT_CALL(
-      *factory_,
-      makeKeyExchange(NamedGroup::x25519, Factory::KeyExchangeMode::Client))
+      *factory_, makeKeyExchange(NamedGroup::x25519, KeyExchangeRole::Client))
       .WillOnce(InvokeWithoutArgs([&mockKex]() {
         auto ret = std::make_unique<MockKeyExchange>();
         EXPECT_CALL(*ret, generateKeyPair());
@@ -522,8 +524,7 @@ TEST_F(ClientProtocolTest, TestConnectPskEarlyFlow) {
   }));
   MockKeyExchange* mockKex;
   EXPECT_CALL(
-      *factory_,
-      makeKeyExchange(NamedGroup::x25519, Factory::KeyExchangeMode::Client))
+      *factory_, makeKeyExchange(NamedGroup::x25519, KeyExchangeRole::Client))
       .WillOnce(InvokeWithoutArgs([&mockKex]() {
         auto ret = std::make_unique<MockKeyExchange>();
         EXPECT_CALL(*ret, generateKeyPair());
@@ -809,8 +810,7 @@ TEST_F(ClientProtocolTest, TestConnectMultipleShares) {
   MockKeyExchange* mockKex1;
   MockKeyExchange* mockKex2;
   EXPECT_CALL(
-      *factory_,
-      makeKeyExchange(NamedGroup::x25519, Factory::KeyExchangeMode::Client))
+      *factory_, makeKeyExchange(NamedGroup::x25519, KeyExchangeRole::Client))
       .WillOnce(InvokeWithoutArgs([&mockKex1]() {
         auto ret = std::make_unique<MockKeyExchange>();
         EXPECT_CALL(*ret, generateKeyPair());
@@ -822,7 +822,7 @@ TEST_F(ClientProtocolTest, TestConnectMultipleShares) {
       }));
   EXPECT_CALL(
       *factory_,
-      makeKeyExchange(NamedGroup::secp256r1, Factory::KeyExchangeMode::Client))
+      makeKeyExchange(NamedGroup::secp256r1, KeyExchangeRole::Client))
       .WillOnce(InvokeWithoutArgs([&mockKex2]() {
         auto ret = std::make_unique<MockKeyExchange>();
         EXPECT_CALL(*ret, generateKeyPair());
@@ -852,7 +852,7 @@ TEST_F(ClientProtocolTest, TestConnectCachedGroup) {
   MockKeyExchange* mockKex;
   EXPECT_CALL(
       *factory_,
-      makeKeyExchange(NamedGroup::secp256r1, Factory::KeyExchangeMode::Client))
+      makeKeyExchange(NamedGroup::secp256r1, KeyExchangeRole::Client))
       .WillOnce(InvokeWithoutArgs([&mockKex]() {
         auto ret = std::make_unique<MockKeyExchange>();
         EXPECT_CALL(*ret, generateKeyPair());
@@ -2620,7 +2620,7 @@ TEST_F(ClientProtocolTest, TestHelloRetryRequestFlow) {
   MockKeyExchange* mockKex;
   EXPECT_CALL(
       *factory_,
-      makeKeyExchange(NamedGroup::secp256r1, Factory::KeyExchangeMode::Client))
+      makeKeyExchange(NamedGroup::secp256r1, KeyExchangeRole::Client))
       .WillOnce(InvokeWithoutArgs([&mockKex]() {
         auto ret = std::make_unique<MockKeyExchange>();
         EXPECT_CALL(*ret, generateKeyPair());
@@ -2751,7 +2751,7 @@ TEST_F(ClientProtocolTest, TestHelloRetryRequestPskFlow) {
   MockKeyExchange* mockKex;
   EXPECT_CALL(
       *factory_,
-      makeKeyExchange(NamedGroup::secp256r1, Factory::KeyExchangeMode::Client))
+      makeKeyExchange(NamedGroup::secp256r1, KeyExchangeRole::Client))
       .WillOnce(InvokeWithoutArgs([&mockKex]() {
         auto ret = std::make_unique<MockKeyExchange>();
         EXPECT_CALL(*ret, generateKeyPair());
@@ -2944,11 +2944,13 @@ TEST_F(ClientProtocolTest, TestHelloRetryRequestECHFlow) {
   // Add the extension to the inner one
   chlo.extensions.push_back(encodeExtension(ech::InnerECHClientHello()));
 
-  // Save this one (the real one), then blank the legacy session id for AAD
-  // construction
+  // Save this one (the real one), then blank the legacy session id and emplace
+  // OuterExtensions for AAD construction
   auto encodedClientHelloInner = encodeHandshake(chlo.clone());
 
   chlo.legacy_session_id = folly::IOBuf::copyBuffer("");
+  chlo.extensions = ech::generateAndReplaceOuterExtensions(
+      std::move(chlo.extensions), context_->getECHOuterExtensionTypes());
   auto encodedClientHelloInnerAad = encode(chlo);
 
   // Add padding
@@ -3003,7 +3005,7 @@ TEST_F(ClientProtocolTest, TestHelloRetryRequestECHFlow) {
   MockKeyExchange* mockKex;
   EXPECT_CALL(
       *factory_,
-      makeKeyExchange(NamedGroup::secp256r1, Factory::KeyExchangeMode::Client))
+      makeKeyExchange(NamedGroup::secp256r1, KeyExchangeRole::Client))
       .WillOnce(InvokeWithoutArgs([&mockKex]() {
         auto ret = std::make_unique<MockKeyExchange>();
         EXPECT_CALL(*ret, generateKeyPair());
@@ -3213,10 +3215,13 @@ TEST_F(ClientProtocolTest, TestHelloRetryRequestECHRejectedFlow) {
   // Add the extension to the inner one
   chlo.extensions.push_back(encodeExtension(ech::InnerECHClientHello()));
 
-  // Save this one (the real one), then blank the legacy session id for AAD
-  // construction
+  // Save this one (the real one), then blank the legacy session id and emplace
+  // OuterExtensions for AAD construction
   auto encodedClientHelloInner = encodeHandshake(chlo.clone());
+
   chlo.legacy_session_id = folly::IOBuf::copyBuffer("");
+  chlo.extensions = ech::generateAndReplaceOuterExtensions(
+      std::move(chlo.extensions), context_->getECHOuterExtensionTypes());
   auto encodedClientHelloInnerAad = encode(chlo);
 
   // Add padding
@@ -3271,7 +3276,7 @@ TEST_F(ClientProtocolTest, TestHelloRetryRequestECHRejectedFlow) {
   MockKeyExchange* mockKex;
   EXPECT_CALL(
       *factory_,
-      makeKeyExchange(NamedGroup::secp256r1, Factory::KeyExchangeMode::Client))
+      makeKeyExchange(NamedGroup::secp256r1, KeyExchangeRole::Client))
       .WillOnce(InvokeWithoutArgs([&mockKex]() {
         auto ret = std::make_unique<MockKeyExchange>();
         EXPECT_CALL(*ret, generateKeyPair());
@@ -3513,7 +3518,7 @@ TEST_F(ClientProtocolTest, TestHelloRetryRequestECHPSKFlow) {
   MockKeyExchange* mockKex;
   EXPECT_CALL(
       *factory_,
-      makeKeyExchange(NamedGroup::secp256r1, Factory::KeyExchangeMode::Client))
+      makeKeyExchange(NamedGroup::secp256r1, KeyExchangeRole::Client))
       .WillOnce(InvokeWithoutArgs([&mockKex]() {
         auto ret = std::make_unique<MockKeyExchange>();
         EXPECT_CALL(*ret, generateKeyPair());

@@ -99,6 +99,9 @@ cpp_library(
 
 cpp_library(
     name = "factory",
+    srcs = [
+        "Factory.cpp",
+    ],
     headers = [
         "Factory.h",
     ],
@@ -123,7 +126,7 @@ cpp_library(
         "DefaultFactory.h",
     ],
     exported_deps = [
-        ":factory",
+        ":multi_backend_factory",
     ],
 )
 
@@ -139,14 +142,14 @@ cpp_library(
         "//fizz:config",
         "//fizz/crypto:hkdf",
         "//fizz/crypto/aead:aegiscipher",
-        "//fizz/crypto/exchange:hybrid_exchange",
+        "//fizz/crypto/exchange:hybrid_key_exchange",
         "//fizz/experimental/crypto/exchange:oqs_key_exchange",
     ],
     exported_deps = [
-        ":default_factory",
         "//fizz/backend:openssl",
         "//fizz/backend:openssl_hasher",
         "//fizz/crypto/exchange:x25519",
+        "//fizz/protocol:factory",
     ],
 )
 
